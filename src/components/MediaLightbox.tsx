@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight, Play } from 'lucide-react';
+import { parseVideoInfo } from '../utils/mediaUtils';
 
 interface MediaLightboxProps {
   isOpen: boolean;
@@ -46,6 +47,8 @@ export const MediaLightbox: React.FC<MediaLightboxProps> = ({
     currentItem.url.includes('youtube') ||
     currentItem.url.includes('vimeo');
 
+  const videoInfo = isVideo ? parseVideoInfo(currentItem.url) : null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-md p-4 md:p-8 animate-fadeIn">
       {/* Top bar with details and close button */}
@@ -76,15 +79,25 @@ export const MediaLightbox: React.FC<MediaLightboxProps> = ({
 
       {/* Main media display */}
       <div className="relative w-full max-w-6xl max-h-[80vh] flex items-center justify-center">
-        {isVideo ? (
+        {isVideo && videoInfo ? (
           <div className="w-full aspect-video max-h-[75vh] flex items-center justify-center bg-black rounded-lg overflow-hidden">
-            <video
-              src={currentItem.url}
-              controls
-              autoPlay
-              playsInline
-              className="w-full h-full object-contain"
-            />
+            {videoInfo.type === 'youtube' || videoInfo.type === 'vimeo' ? (
+              <iframe
+                src={videoInfo.embedUrl}
+                title={projectTitle}
+                className="w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            ) : (
+              <video
+                src={videoInfo.embedUrl}
+                controls
+                autoPlay
+                playsInline
+                className="w-full h-full object-contain"
+              />
+            )}
           </div>
         ) : (
           <img

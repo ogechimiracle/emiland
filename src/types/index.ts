@@ -4,6 +4,8 @@ export interface Category {
   slug: string;
   description?: string;
   sortOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface MediaItem {

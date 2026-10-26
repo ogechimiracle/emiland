@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Project } from '../types';
 import { ArrowLeft, MapPin, Calendar, Compass, Maximize2, Play, Sparkles, MessageSquare, Loader2 } from 'lucide-react';
 import { MediaLightbox } from '../components/MediaLightbox';
+import { parseVideoInfo } from '../utils/mediaUtils';
+import { mergeProjects } from '../utils/storageSync';
 
 interface ProjectDetailPageProps {
   slug: string;
@@ -14,8 +16,14 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
   onNavigate,
   onOpenConsultation,
 }) => {
-  const [project, setProject] = useState<Project | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [project, setProject] = useState<Project | null>(() => {
+    const cached = mergeProjects([]);
+    return cached.find((p) => p.slug === slug || p.id === slug) || null;
+  });
+  const [loading, setLoading] = useState<boolean>(() => {
+    const cached = mergeProjects([]);
+    return !cached.some((p) => p.slug === slug || p.id === slug);
+  });
   const [error, setError] = useState<string | null>(null);
 
   // Lightbox
@@ -23,14 +31,21 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
-    setLoading(true);
     fetch(`/api/projects/${slug}`)
       .then((res) => {
         if (!res.ok) throw new Error('Project not found');
         return res.json();
       })
       .then((data) => setProject(data))
-      .catch((err) => setError(err.message))
+      .catch((err) => {
+        const cached = mergeProjects([]);
+        const found = cached.find((p) => p.slug === slug || p.id === slug);
+        if (found) {
+          setProject(found);
+        } else {
+          setError(err.message);
+        }
+      })
       .finally(() => setLoading(false));
   }, [slug]);
 
@@ -117,15 +132,33 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
       {/* Main Cover or Video Showcase */}
       <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-black border border-[#E2D9CC] dark:border-[#2D2622]">
         {project.mediaType === 'video' && project.videoUrl ? (
-          <div className="aspect-video w-full">
-            <video
-              src={project.videoUrl}
-              poster={project.coverMediaUrl}
-              controls
-              playsInline
-              className="w-full h-full object-cover"
-            />
-          </div>
+          (() => {
+            const vidInfo = parseVideoInfo(project.videoUrl);
+            if (vidInfo.type === 'youtube' || vidInfo.type === 'vimeo') {
+              return (
+                <div className="aspect-video w-full">
+                  <iframe
+                    src={vidInfo.embedUrl}
+                    title={project.title}
+                    className="w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              );
+            }
+            return (
+              <div className="aspect-video w-full">
+                <video
+                  src={project.videoUrl}
+                  poster={project.coverMediaUrl}
+                  controls
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            );
+          })()
         ) : (
           <div
             onClick={() => {

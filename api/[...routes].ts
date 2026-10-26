@@ -4,11 +4,13 @@ export default async function handler(req: any, res: any) {
    try {
       await ensureDbInitialized();
 
-      if (req.query?.route) {
-         const routeParts = Array.isArray(req.query.route) ? req.query.route : [req.query.route];
-         const subPath = '/' + routeParts.join('/');
-         if (!req.url.includes(subPath)) {
-            req.url = subPath;
+      if (req.query?.routes) {
+         const routeParts = Array.isArray(req.query.routes) ? req.query.routes : [req.query.routes];
+         const apiPath = `/api/${routeParts.join('/')}`;
+         if (!req.url.startsWith(apiPath)) {
+            const queryIndex = req.url.indexOf('?');
+            const query = queryIndex === -1 ? '' : req.url.slice(queryIndex);
+            req.url = `${apiPath}${query}`;
          }
       }
 

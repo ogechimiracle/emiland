@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Project, Category } from '../types';
 import { Search, SlidersHorizontal, Maximize2, Play, ArrowRight, FolderKanban } from 'lucide-react';
 import { MediaLightbox } from '../components/MediaLightbox';
+import { mergeProjects, mergeCategories } from '../utils/storageSync';
 
 interface WorksPageProps {
   onNavigate: (path: string) => void;
@@ -9,11 +10,11 @@ interface WorksPageProps {
 }
 
 export const WorksPage: React.FC<WorksPageProps> = ({ onNavigate, onOpenConsultation }) => {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [projects, setProjects] = useState<Project[]>(() => mergeProjects([]));
+  const [categories, setCategories] = useState<Category[]>(() => mergeCategories([]));
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // Lightbox state
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -26,9 +27,12 @@ export const WorksPage: React.FC<WorksPageProps> = ({ onNavigate, onOpenConsulta
     fetch('/api/categories')
       .then((res) => res.json())
       .then((data) => {
-        if (Array.isArray(data)) setCategories(data);
+        if (Array.isArray(data)) setCategories(mergeCategories(data));
       })
-      .catch((err) => console.error('Failed to load categories', err));
+      .catch((err) => {
+        console.error('Failed to load categories', err);
+        setCategories(mergeCategories([]));
+      });
   }, []);
 
   // Fetch projects with category and search filter
@@ -41,9 +45,12 @@ export const WorksPage: React.FC<WorksPageProps> = ({ onNavigate, onOpenConsulta
     fetch(`/api/projects?${params.toString()}`)
       .then((res) => res.json())
       .then((data) => {
-        if (Array.isArray(data)) setProjects(data);
+        if (Array.isArray(data)) setProjects(mergeProjects(data));
       })
-      .catch((err) => console.error('Failed to load projects', err))
+      .catch((err) => {
+        console.error('Failed to load projects', err);
+        setProjects(mergeProjects([]));
+      })
       .finally(() => setLoading(false));
   }, [selectedCategory, searchQuery]);
 

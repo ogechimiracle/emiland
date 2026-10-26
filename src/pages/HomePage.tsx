@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Project, SiteSettings } from '../types';
 import { ArrowRight, Compass, Sparkles, Layers, Sliders, Maximize2, Check, Clock, ShieldCheck, MapPin } from 'lucide-react';
 import { MediaLightbox } from '../components/MediaLightbox';
+import { mergeProjects } from '../utils/storageSync';
 
 interface HomePageProps {
   settings: Partial<SiteSettings>;
@@ -10,8 +11,11 @@ interface HomePageProps {
 }
 
 export const HomePage: React.FC<HomePageProps> = ({ settings, onNavigate, onOpenConsultation }) => {
-  const [featuredProjects, setFeaturedProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [featuredProjects, setFeaturedProjects] = useState<Project[]>(() => {
+    const all = mergeProjects([]);
+    return all.filter((p) => p.featured === 1 || p.featured === (true as any));
+  });
+  const [loading, setLoading] = useState(false);
 
   // Lightbox state
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -24,10 +28,17 @@ export const HomePage: React.FC<HomePageProps> = ({ settings, onNavigate, onOpen
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
-          setFeaturedProjects(data);
+          const merged = mergeProjects(data);
+          const featured = merged.filter((p) => p.featured === 1 || p.featured === (true as any));
+          setFeaturedProjects(featured.length > 0 ? featured : merged.slice(0, 4));
         }
       })
-      .catch((err) => console.error('Failed to load featured projects:', err))
+      .catch((err) => {
+        console.error('Failed to load featured projects:', err);
+        const all = mergeProjects([]);
+        const featured = all.filter((p) => p.featured === 1 || p.featured === (true as any));
+        setFeaturedProjects(featured.length > 0 ? featured : all.slice(0, 4));
+      })
       .finally(() => setLoading(false));
   }, []);
 
