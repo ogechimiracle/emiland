@@ -3,6 +3,7 @@ import { Project, SiteSettings } from '../types';
 import { ArrowRight, Compass, Sparkles, Layers, Sliders, Maximize2, Check, Clock, ShieldCheck, MapPin } from 'lucide-react';
 import { MediaLightbox } from '../components/MediaLightbox';
 import { mergeProjects } from '../utils/storageSync';
+import heroInteriorImage from '../assets/images/hero_interior_living_1792750666855.jpg';
 
 interface HomePageProps {
   settings: Partial<SiteSettings>;
@@ -106,7 +107,7 @@ export const HomePage: React.FC<HomePageProps> = ({ settings, onNavigate, onOpen
           <div className="lg:col-span-6">
             <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-[#E2D9CC] dark:border-[#2D2622] group">
               <img
-                src="../assets/images/hero_interior_living_1792750666855.jpg"
+                src={heroInteriorImage}
                 alt="Luxury bespoke cabinetry and interior living space crafted with beauty and quality"
                 className="w-full aspect-[4/3] object-cover transition-transform duration-700 group-hover:scale-105"
               />
