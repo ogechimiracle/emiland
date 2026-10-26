@@ -6,14 +6,45 @@ import path from 'path';
 import fs from 'fs';
 
 // Use direct local SQLite file database (standalone local SQLite, independent of any DATABASE_URL)
-const sqliteFilePath = path.resolve(process.cwd(), 'sqlite.db');
-const dbPath = `file:${sqliteFilePath}`;
+const isServerless = Boolean(
+  process.env.VERCEL ||
+  process.env.VERCEL_ENV ||
+  process.env.AWS_LAMBDA_FUNCTION_NAME ||
+  process.env.LAMBDA_TASK_ROOT
+);
+
+const sqliteFilePath = isServerless
+  ? '/tmp/sqlite.db'
+  : path.resolve(process.cwd(), 'sqlite.db');
+
+const dbUrl = process.env.TURSO_DATABASE_URL || process.env.LIBSQL_URL || `file:${sqliteFilePath}`;
+const authToken = process.env.TURSO_AUTH_TOKEN || process.env.LIBSQL_AUTH_TOKEN;
 
 export const client = createClient({
-  url: dbPath,
+  url: dbUrl,
+  authToken: authToken,
 });
 
 export const db = drizzle(client, { schema });
+
+let initPromise: Promise<void> | null = null;
+let isInitialized = false;
+
+export async function ensureDbInitialized(): Promise<void> {
+  if (isInitialized) return;
+  if (!initPromise) {
+    initPromise = initializeDatabase()
+      .then(() => {
+        isInitialized = true;
+      })
+      .catch((err) => {
+        console.error('Failed to initialize SQLite database:', err);
+        initPromise = null;
+        throw err;
+      });
+  }
+  return initPromise;
+}
 
 // Safe database schema initialization without dropping tables
 export async function initializeDatabase() {
