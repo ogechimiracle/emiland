@@ -447,7 +447,7 @@ apiRouter.post('/projects', requireAuth, async (req, res) => {
 
     const shortDescription = String(body.shortDescription || body.short_description || '').trim();
     const description = String(body.description || '').trim();
-    const coverMediaUrl = String(body.coverMediaUrl || body.cover_media_url || '').trim() || '/src/assets/images/hero_interior_living_1792750666855.jpg';
+    const coverMediaUrl = String(body.coverMediaUrl || body.cover_media_url || '').trim() || '/assets/images/hero_interior_living_1792750666855.jpg';
     const categoryId = body.categoryId || body.category_id || null;
     const location = String(body.location || '').trim();
     const completionDate = String(body.completionDate || body.completion_date || '').trim();
@@ -579,7 +579,7 @@ apiRouter.put('/projects/:id', requireAuth, async (req, res) => {
 
     const shortDescription = String(body.shortDescription || body.short_description || '').trim();
     const description = String(body.description || '').trim();
-    const coverMediaUrl = String(body.coverMediaUrl || body.cover_media_url || '').trim() || '/src/assets/images/hero_interior_living_1792750666855.jpg';
+    const coverMediaUrl = String(body.coverMediaUrl || body.cover_media_url || '').trim() || '/assets/images/hero_interior_living_1792750666855.jpg';
     const categoryId = body.categoryId || body.category_id || null;
     const location = String(body.location || '').trim();
     const completionDate = String(body.completionDate || body.completion_date || '').trim();

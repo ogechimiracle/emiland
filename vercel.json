@@ -3,6 +3,10 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/src/assets/images/(.*)",
+      "destination": "/assets/images/$1"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/index"
     },

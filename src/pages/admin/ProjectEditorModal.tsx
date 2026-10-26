@@ -63,7 +63,7 @@ export const ProjectEditorModal: React.FC<ProjectEditorModalProps> = ({
   useEffect(() => {
     if (projectToEdit) {
       const edit = projectToEdit as any;
-      const coverUrl = edit.coverMediaUrl || edit.cover_media_url || '/src/assets/images/hero_interior_living_1792750666855.jpg';
+      const coverUrl = edit.coverMediaUrl || edit.cover_media_url || '/assets/images/hero_interior_living_1792750666855.jpg';
       setFormData({
         title: edit.title || '',
         slug: edit.slug || '',
@@ -83,7 +83,7 @@ export const ProjectEditorModal: React.FC<ProjectEditorModalProps> = ({
       });
       setCustomCoverUrl(coverUrl);
     } else {
-      const defaultCover = '/src/assets/images/hero_interior_living_1792750666855.jpg';
+      const defaultCover = '/assets/images/hero_interior_living_1792750666855.jpg';
       setFormData({
         title: '',
         slug: '',
@@ -246,7 +246,7 @@ export const ProjectEditorModal: React.FC<ProjectEditorModalProps> = ({
       slug: formData.slug.trim(),
       shortDescription: formData.shortDescription.trim(),
       description: formData.description.trim(),
-      coverMediaUrl: formData.coverMediaUrl || '/src/assets/images/hero_interior_living_1792750666855.jpg',
+      coverMediaUrl: formData.coverMediaUrl || '/assets/images/hero_interior_living_1792750666855.jpg',
       categoryId: formData.categoryId || categories[0]?.id || '',
       location: formData.location.trim(),
       completionDate: formData.completionDate.trim(),

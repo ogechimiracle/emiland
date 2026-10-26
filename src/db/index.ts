@@ -192,7 +192,7 @@ export async function initializeDatabase() {
 Our studio reconfigured the floor plan to establish clear sightlines through floor-to-ceiling windows toward London's skyline. Deep walnut wall paneling was paired with book-matched Calacatta marble surrounds and an organic travertine coffee table carved from a single quarry block in Tivoli.
 
 Custom upholstery in undyed Italian bouclé provides sculptural balance against the structural wood beams. Every lighting element, including the dual-tier chandelier, was commissioned from local metalsmiths in patinated unlacquered brass.`,
-        coverMediaUrl: '/src/assets/images/project_belgravia_penthouse_1792750668137.jpg',
+        coverMediaUrl: '/assets/images/project_belgravia_penthouse_1792750668137.jpg',
         categoryId: 'cat_residential',
         location: 'Belgravia, London',
         completionDate: 'Autumn 2025',
@@ -214,7 +214,7 @@ Custom upholstery in undyed Italian bouclé provides sculptural balance against 
 The central pavilion features a massive six-meter dining table shaped from a fallen Swiss oak trunk, left unsealed except for natural organic oils. Micro-cement flooring flows seamlessly across the threshold into the gravel courtyard.
 
 We selected hand-thrown ceramics, raw linen runners, and low-voltage pendant cones to foster quiet conversation and contemplation at every hour of the day.`,
-        coverMediaUrl: '/src/assets/images/project_wabisabi_residence_1792750668240.jpg',
+        coverMediaUrl: '/assets/images/project_wabisabi_residence_1792750668240.jpg',
         categoryId: 'cat_dining_kitchen',
         location: 'Lucerne, Switzerland',
         completionDate: 'Spring 2025',
@@ -236,7 +236,7 @@ We selected hand-thrown ceramics, raw linen runners, and low-voltage pendant con
 A continuous horizontal band of fluted cedar headboard provides both structural grounding and acoustic dampening. Walls are finished in hand-troweled warm clay plaster that responds gracefully to natural daylight.
 
 Furnishings include a low-slung oak bed frame, washed European linen bedding, and custom patinated bronze task lights designed in our Mayfair atelier.`,
-        coverMediaUrl: '/src/assets/images/project_kyoto_master_suite_1792750668890.jpg',
+        coverMediaUrl: '/assets/images/project_kyoto_master_suite_1792750668890.jpg',
         categoryId: 'cat_master_suites',
         location: 'Kyoto, Japan',
         completionDate: 'Winter 2025',
@@ -256,7 +256,7 @@ Furnishings include a low-slung oak bed frame, washed European linen bedding, an
         description: `This light-drenched salon redefines coastal Mediterranean living through a subdued palette of sand, bone, charcoal, and warm earth.
 
 Black oak floor-to-ceiling joinery provides rhythm and deep contrast, showcasing a curated collection of mid-century ceramics and architectural monographs. Steel casement doors open directly onto olive groves, washing the limewashed plaster with warm afternoon light.`,
-        coverMediaUrl: '/src/assets/images/hero_interior_living_1792750666855.jpg',
+        coverMediaUrl: '/assets/images/hero_interior_living_1792750666855.jpg',
         categoryId: 'cat_residential',
         location: 'Saint-Paul-de-Vence, France',
         completionDate: 'Summer 2025',

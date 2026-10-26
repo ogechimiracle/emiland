@@ -42,7 +42,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ settings, onNavigate, onOp
         <div className="lg:col-span-5">
           <div className="relative rounded-3xl overflow-hidden aspect-[4/5] bg-[#EDE5D8] dark:bg-[#24201D] border border-[#E2D9CC] dark:border-[#2D2622] shadow-xl group">
             <img
-              src="/src/assets/images/project_belgravia_penthouse_1792750668137.jpg"
+              src="../assets/images/project_belgravia_penthouse_1792750668137.jpg"
               alt="Emiland's Interior luxury cabinetry and bespoke furniture"
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
