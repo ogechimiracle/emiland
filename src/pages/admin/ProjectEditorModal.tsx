@@ -234,45 +234,21 @@ export const ProjectEditorModal: React.FC<ProjectEditorModalProps> = ({
       Authorization: `Bearer ${activeToken}`,
     };
 
-    // Construct clean project object
-    const finalProject: Project = {
-      id: isEdit ? projectToEdit.id : `proj_${Date.now()}`,
-      title: formData.title.trim(),
-      slug: formData.slug.trim(),
-      shortDescription: formData.shortDescription.trim(),
-      description: formData.description.trim(),
-      coverMediaUrl: formData.coverMediaUrl || '/assets/images/hero_interior_living_1792750666855.jpg',
-      categoryId: formData.categoryId || categories[0]?.id || '',
-      location: formData.location.trim(),
-      completionDate: formData.completionDate.trim(),
-      status: formData.status,
-      featured: formData.featured,
-      mediaType: formData.mediaType,
-      videoUrl: formData.videoUrl.trim(),
-      clientName: formData.clientName.trim(),
-      squareFootage: formData.squareFootage.trim(),
-      gallery: formData.galleryUrls.map((url, i) => ({
-        id: `med_${i}`,
-        projectId: isEdit ? projectToEdit.id : `proj_${Date.now()}`,
-        mediaType: url.endsWith('.mp4') || url.includes('youtube') || url.includes('vimeo') ? 'video' : 'image',
-        storageKey: url,
-        originalFilename: `view-${i + 1}`,
-        mimeType: 'image/jpeg',
-        sizeBytes: 0,
-        sortOrder: i,
-        createdAt: new Date().toISOString(),
-      })),
-      createdAt: isEdit ? (projectToEdit as any).createdAt : new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
     try {
-      // 1. Send to server API
+      const requestBody = JSON.stringify(formData);
+      const requestSize = new TextEncoder().encode(requestBody).byteLength;
+      const maxRequestSize = 4 * 1024 * 1024;
+      if (requestSize > maxRequestSize) {
+        throw new Error(
+          `Project data is ${(requestSize / (1024 * 1024)).toFixed(1)} MB. Vercel allows requests up to 4.5 MB. Remove some gallery images or use smaller files, then save again.`,
+        );
+      }
+
       const res = await fetch(url, {
         method,
         headers,
         credentials: 'include',
-        body: JSON.stringify(formData),
+        body: requestBody,
       });
 
       const text = await res.text();
@@ -280,7 +256,16 @@ export const ProjectEditorModal: React.FC<ProjectEditorModalProps> = ({
       try {
         data = JSON.parse(text);
       } catch {
-        throw new Error(`Project save failed (${res.status}): server returned an invalid response.`);
+        const detail = text
+          .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+          .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 240);
+        throw new Error(
+          `Project save failed (${res.status}): ${detail || 'Vercel returned an HTML error page. Check the Vercel function logs and database environment variables.'}`,
+        );
       }
 
       if (res.status === 401) {
@@ -289,9 +274,6 @@ export const ProjectEditorModal: React.FC<ProjectEditorModalProps> = ({
       if (!res.ok || !data?.success) {
         throw new Error(data?.error || `Project save failed (${res.status}). Please try again.`);
       }
-
-      if (data.id) finalProject.id = data.id;
-      if (data.slug) finalProject.slug = data.slug;
 
       onSaved();
       onClose();
