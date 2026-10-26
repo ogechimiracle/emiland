@@ -14,7 +14,8 @@ export const WorksPage: React.FC<WorksPageProps> = ({ onNavigate, onOpenConsulta
   const [categories, setCategories] = useState<Category[]>(() => mergeCategories([]));
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [projectsError, setProjectsError] = useState<string | null>(null);
 
   // Lightbox state
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -38,18 +39,29 @@ export const WorksPage: React.FC<WorksPageProps> = ({ onNavigate, onOpenConsulta
   // Fetch projects with category and search filter
   useEffect(() => {
     setLoading(true);
+    setProjectsError(null);
     const params = new URLSearchParams();
     if (selectedCategory !== 'all') params.append('category', selectedCategory);
     if (searchQuery.trim()) params.append('search', searchQuery.trim());
 
     fetch(`/api/projects?${params.toString()}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) setProjects(mergeProjects(data));
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error(`Projects request failed (${res.status})`);
+        }
+        const data: unknown = await res.json();
+        if (!Array.isArray(data)) {
+          throw new Error('Projects API returned an invalid response');
+        }
+        setProjects(mergeProjects(data as Project[]));
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         console.error('Failed to load projects', err);
-        setProjects(mergeProjects([]));
+        setProjectsError(
+          err instanceof Error
+            ? err.message
+            : 'Unable to load projects. Please try again later.',
+        );
       })
       .finally(() => setLoading(false));
   }, [selectedCategory, searchQuery]);
@@ -132,6 +144,14 @@ export const WorksPage: React.FC<WorksPageProps> = ({ onNavigate, onOpenConsulta
       </div>
 
       {/* Projects Grid */}
+      {projectsError && (
+        <p
+          role="alert"
+          className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200"
+        >
+          {projectsError}. Showing any projects already available on this device.
+        </p>
+      )}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {[1, 2, 3, 4, 5, 6].map((i) => (
