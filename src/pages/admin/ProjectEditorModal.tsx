@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Project, Category } from '../../types';
 import { readFileAsOptimizedDataUrl, parseVideoInfo } from '../../utils/mediaUtils';
-import { saveCachedProject } from '../../utils/storageSync';
 import {
   X,
   Upload,
@@ -148,11 +147,7 @@ export const ProjectEditorModal: React.FC<ProjectEditorModalProps> = ({
           body,
         });
         if (res.ok) {
-          const data = await res.json();
-          if (data?.url && !data.url.startsWith('data:')) {
-            setFormData((prev) => ({ ...prev, coverMediaUrl: data.url }));
-            setCustomCoverUrl(data.url);
-          }
+          await res.json();
         }
       } catch {
         // Fallback data URL is already active, so ignore server error
@@ -281,27 +276,27 @@ export const ProjectEditorModal: React.FC<ProjectEditorModalProps> = ({
       });
 
       const text = await res.text();
-      let data: any = null;
+      let data: { success?: boolean; error?: string; id?: string; slug?: string } | null = null;
       try {
         data = JSON.parse(text);
       } catch {
-        // Non-JSON response (e.g. serverless cold start hiccup)
+        throw new Error(`Project save failed (${res.status}): server returned an invalid response.`);
       }
 
       if (res.status === 401) {
         throw new Error('Authentication expired. Please re-login with your credentials.');
       }
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || `Project save failed (${res.status}). Please try again.`);
+      }
 
-      // 2. Regardless of serverless state, persist project in local storage cache
-      saveCachedProject(finalProject);
+      if (data.id) finalProject.id = data.id;
+      if (data.slug) finalProject.slug = data.slug;
 
       onSaved();
       onClose();
     } catch (err: any) {
-      // If server failed, save to client storage so the user's project is never lost!
-      saveCachedProject(finalProject);
-      onSaved();
-      onClose();
+      setError(err.message || 'Unable to save project to the server. Please try again.');
     } finally {
       setSaving(false);
     }

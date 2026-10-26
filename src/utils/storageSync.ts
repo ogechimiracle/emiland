@@ -39,12 +39,11 @@ export function mergeProjects(serverProjects: Project[]): Project[] {
   if (!cached || cached.length === 0) return serverProjects;
 
   const map = new Map<string, Project>();
-  // Server projects first
-  for (const p of serverProjects) {
+  // Keep server data authoritative while retaining legacy browser-only projects.
+  for (const p of cached) {
     map.set(p.id, p);
   }
-  // Cached projects overwrite or add
-  for (const p of cached) {
+  for (const p of serverProjects) {
     map.set(p.id, p);
   }
   return Array.from(map.values());

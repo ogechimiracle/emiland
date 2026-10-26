@@ -32,6 +32,9 @@ let isInitialized = false;
 
 export async function ensureDbInitialized(): Promise<void> {
   if (isInitialized) return;
+  if (isServerless && !process.env.TURSO_DATABASE_URL && !process.env.LIBSQL_URL) {
+    throw new Error('Persistent database is not configured. Set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN in Vercel.');
+  }
   if (!initPromise) {
     initPromise = initializeDatabase()
       .then(() => {
