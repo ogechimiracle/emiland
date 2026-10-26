@@ -1,0 +1,6 @@
+{
+  "name": "Maison Terre | Interior Architecture & Portfolio",
+  "description": "Premium interior architecture and decoration portfolio, studio showcase, and owner administration system built with full-stack SQLite and Drizzle.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

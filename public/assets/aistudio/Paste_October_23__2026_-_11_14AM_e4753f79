@@ -1,0 +1,667 @@
+# OpenCode AI Prompt: Upgrade Existing Interior Decoration Website to a Production-Ready Full-Stack Next.js Application
+
+Act as a senior full-stack software engineer, UI/UX designer, database architect, and application security specialist.
+
+Your task is to **inspect, improve, and extend my existing interior decoration website into a professional, production-ready full-stack Next.js application**.
+
+## 1. CRITICAL INSTRUCTION: PRESERVE THE EXISTING PROJECT
+
+Before writing or modifying any code, thoroughly inspect the existing project.
+
+- Analyze the current folder structure, components, pages, layouts, styling, dependencies, routes, and existing functionality.
+- Understand how the existing website works before making changes.
+- Preserve the existing design, branding, content, animations, layout, and functionality wherever possible.
+- Do not delete the existing project and rebuild it from scratch.
+- Do not replace the current UI with a generic template.
+- Do not arbitrarily change existing colors, typography, spacing, images, or component structure.
+- Keep all existing working features functional.
+- Make targeted improvements and extend the existing implementation rather than rewriting everything.
+- Reuse existing components and libraries where appropriate.
+- If a feature already exists, improve or integrate it instead of creating a duplicate.
+- Before changing configuration files, understand their current purpose and preserve compatible settings.
+- Never delete existing database data, project files, migrations, or user uploads without explicit authorization.
+- If the current implementation conflicts with a new requirement, make the smallest necessary change while preserving the original visual identity.
+
+**The existing project is the source of truth for the current design. The objective is to upgrade it, not replace it.**
+
+## 2. Technology Stack
+
+Use the following stack, adapting existing dependencies where practical:
+
+- Framework: Next.js with App Router.
+- Language: TypeScript with strict type checking.
+- Styling: Tailwind CSS, preserving the project's existing styling conventions where possible.
+- Database: SQLite.
+- ORM: Drizzle ORM with SQLite, preferably using `better-sqlite3` for a Node.js deployment.
+- Validation: Zod.
+- Authentication: Secure owner-only authentication using an established, maintained authentication library compatible with the existing Next.js version.
+- Forms: React Hook Form with Zod where useful.
+- Icons: Existing icon library, or `lucide-react` if one is not already established.
+- Notifications: Existing toast library, or Sonner.
+- Theme: Light and dark modes with persistent user preference.
+- Media storage: A storage abstraction supporting local development and persistent production media storage.
+- Deployment: Prepare the application for a suitable Node.js hosting environment, including production environments that support persistent SQLite storage.
+
+Do not blindly install another library when the project already has a suitable solution. Check compatibility with the existing Next.js version before adding dependencies.
+
+## 3. Website Identity and Visual Design
+
+This is a premium interior decoration and interior design portfolio website.
+
+The design must communicate elegance, creativity, professionalism, comfort, luxury, and trust.
+
+### Primary color scheme
+
+Build the visual system around **brown and off-white**.
+
+Suggested colors:
+
+- Primary brown: `#6F4E37`
+- Deep brown: `#3E2B23`
+- Warm brown: `#A67C52`
+- Off-white background: `#F8F5EF`
+- Cream surface: `#EDE5D8`
+- Main text: `#302720`
+- Muted text: `#786D63`
+- Dark background: `#171412`
+- Dark surface: `#24201D`
+- Dark text: `#F5EFE6`
+
+Treat these as design references, not permission to discard the website's existing identity. Integrate them naturally with its current colors and visual style.
+
+### Design requirements
+
+- Create an elegant, modern, premium-looking interface.
+- Use generous whitespace and balanced visual hierarchy.
+- Use beautiful interior design photography and the owner's actual portfolio assets.
+- Use tasteful transitions, hover states, subtle animations, and smooth scrolling where appropriate.
+- Use readable typography and consistent spacing.
+- Create responsive layouts for mobile, tablet, laptop, and desktop.
+- Avoid excessive gradients, unnecessary glassmorphism, oversized rounded cards, and generic dashboard aesthetics.
+- Use accessible contrast ratios in both themes.
+- Keep navigation intuitive and conversion-focused.
+- Include appropriate loading, empty, error, and success states.
+- Ensure the mobile experience feels intentionally designed rather than merely compressed.
+
+## 4. Public Website Pages
+
+Preserve existing pages and routes wherever possible. Improve them and add missing pages as needed.
+
+### A. Home Page
+
+Create or improve a compelling landing page containing:
+
+- An elegant hero section with a strong headline, supporting description, and professional interior design imagery.
+- Primary call-to-action buttons such as "Explore Our Works" and "Book a Consultation".
+- A featured projects section powered by actual portfolio data from SQLite.
+- An introduction to the interior decorator or design studio.
+- A services section.
+- A section explaining the studio's design process.
+- Selected client testimonials if genuine content is available.
+- A call-to-action section encouraging visitors to contact the owner.
+- A professional footer containing navigation and contact links.
+
+Do not fabricate customer testimonials, client logos, awards, or business claims. Use clearly identified placeholders only when necessary.
+
+### B. Works / Portfolio Page
+
+This is one of the most important pages.
+
+Create a dynamic portfolio page that displays the owner's published interior decoration projects.
+
+Each project can contain:
+
+- Title.
+- Slug.
+- Short description.
+- Detailed description.
+- Cover image.
+- Multiple project images where appropriate.
+- Video or video URL.
+- Media type: image, video, or mixed gallery.
+- Project category.
+- Location, if provided.
+- Completion date, if provided.
+- Featured status.
+- Publication status.
+- Creation and update timestamps.
+
+Portfolio requirements:
+
+- Fetch published projects from SQLite using server-side data access.
+- Display image-based and video-based projects in an attractive responsive grid.
+- Support project filtering by category.
+- Provide an individual project detail page using a dynamic route such as `/works/[slug]`.
+- Include a professional media viewer or gallery.
+- Support video playback with appropriate controls.
+- Optimize image loading and avoid loading every large media file at once.
+- Include pagination or a load-more mechanism if the portfolio grows.
+- Show a well-designed empty state when no published projects exist.
+- Display only published projects publicly.
+- Make featured projects configurable through the admin dashboard.
+- Ensure newly published projects appear on the public portfolio without requiring code changes or manual edits to frontend arrays.
+
+The portfolio must be database-driven, not hardcoded.
+
+### C. About Page
+
+Include the owner's biography, design philosophy, experience, working approach, and studio information.
+
+Where these details are not available, create editable content fields or sensible placeholders rather than inventing facts.
+
+### D. Services Page
+
+Create service sections for the types of interior decoration services offered, such as:
+
+- Residential interior decoration.
+- Commercial interior design.
+- Living room and bedroom styling.
+- Kitchen and bathroom design.
+- Space planning.
+- Furniture selection and styling.
+- Renovation and finishing consultation.
+
+These should be configurable and editable where practical. Do not claim the owner provides a service unless the existing website or owner-provided content supports it.
+
+### E. Contact / Consultation Page
+
+Include:
+
+- A contact form with name, email, phone (optional), service of interest, budget (optional), and project message.
+- Server-side validation using Zod.
+- Clear validation and submission feedback.
+- Spam protection appropriate to the deployment environment.
+- Contact details sourced from existing project content or editable settings.
+- WhatsApp contact link if the owner has supplied a valid number.
+- Email integration through environment-configured SMTP or a suitable provider when credentials are available.
+
+Do not pretend that a message was emailed successfully if no email service is configured. Provide an honest status and a reliable fallback.
+
+## 5. Owner Authentication and Admin Dashboard
+
+Implement a secure, owner-only administration system.
+
+The website owner must be able to log in and manage portfolio projects without editing code.
+
+### Authentication
+
+- Create a secure login page at `/admin/login`.
+- Restrict dashboard routes and protected operations to authenticated owners.
+- Use secure, HTTP-only session cookies.
+- Apply appropriate `Secure`, `SameSite`, and expiration settings.
+- Hash passwords using a modern, secure password hashing algorithm supported by the selected authentication solution.
+- Never store plaintext passwords.
+- Never expose password hashes, session secrets, or authentication tokens to the client.
+- Implement logout and session expiration.
+- Validate all protected operations on the server, not just in the UI.
+- Use environment variables for secrets and credentials.
+- Do not provide public registration.
+- Provide a secure initial owner-account setup process that does not require hardcoded credentials.
+- Prevent unauthorized users from accessing admin APIs, uploads, or protected actions.
+
+Do not hardcode a default administrator password into the source code or seed scripts.
+
+### Admin Dashboard
+
+Create a clean, responsive dashboard using the existing design system.
+
+Include summary cards for:
+
+- Total projects.
+- Published projects.
+- Draft projects.
+- Featured projects.
+
+Provide navigation to:
+
+- Dashboard.
+- Manage Works.
+- Add New Work.
+- Categories.
+- Site Settings.
+- Change Password or Account Settings.
+- View Website.
+- Logout.
+
+Use a professional interface consistent with the public website's brown and off-white identity.
+
+### Project Management
+
+Implement complete CRUD functionality:
+
+- Create a project.
+- View projects.
+- Edit projects.
+- Delete projects after confirmation.
+- Publish a project.
+- Unpublish a project.
+- Save projects as drafts.
+- Mark and unmark featured projects.
+- Search projects by title.
+- Filter by category and publication status.
+- Preview a project before publication.
+- Edit the project slug with uniqueness validation.
+- Show success and error notifications.
+
+All changes must persist in SQLite.
+
+Do not simulate CRUD operations with frontend-only state or local arrays.
+
+## 6. Image and Video Upload System
+
+The owner must be able to upload project images and videos from the dashboard.
+
+### Image uploads
+
+Support:
+
+- JPEG.
+- PNG.
+- WebP.
+- AVIF when supported by the chosen image pipeline.
+
+Requirements:
+
+- Image preview before saving.
+- Multiple image uploads when appropriate.
+- Cover image selection.
+- Replace and remove images.
+- Useful upload progress and error messages.
+- Sensible configurable size limits.
+- Server-side file type and size validation.
+- Validate actual file content where possible, rather than trusting extensions or browser-provided MIME types.
+- Generate safe, unique filenames.
+- Prevent path traversal and executable-file uploads.
+- Restrict upload operations to authenticated owners.
+
+### Video uploads
+
+Support:
+
+- MP4.
+- WebM.
+
+Requirements:
+
+- Video preview.
+- Configurable maximum upload size.
+- Server-side validation.
+- Playback controls on the public website.
+- Useful feedback for unsupported formats and oversized files.
+- A poster image or cover image for video projects.
+- Support for an external video URL where appropriate, with validation and safe rendering.
+
+Do not trust arbitrary video embed HTML supplied by users.
+
+### Media storage architecture
+
+Separate media storage from portfolio metadata.
+
+Use a media storage service or adapter so the application can support:
+
+1. Local persistent storage for development.
+2. A persistent production volume or object storage provider for deployment.
+
+Do not store large image or video binaries directly in SQLite.
+
+Store media metadata and storage references in SQLite.
+
+IMPORTANT: Do not assume a local filesystem or SQLite database is persistent on serverless hosting. Explain deployment requirements clearly and support an appropriate persistent storage configuration for the chosen hosting platform.
+
+If local uploads are used, store them outside the public source directories where possible, validate access, and serve them through a controlled, secure mechanism. Never expose private uploads simply because they exist in a public folder.
+
+## 7. SQLite Database and Drizzle ORM
+
+Set up a maintainable SQLite database schema using Drizzle ORM.
+
+Create tables or equivalent relational structures for:
+
+### Users
+- `id`: UUID.
+- `name`.
+- `email`: unique.
+- `passwordHash`.
+- `createdAt`.
+- `updatedAt`.
+
+### Projects
+- `id`: UUID.
+- `title`.
+- `slug`: unique.
+- `shortDescription`.
+- `description`.
+- `coverMediaId`, where appropriate.
+- `categoryId`.
+- `location`, optional.
+- `completionDate`, optional.
+- `status`: draft or published.
+- `featured`: boolean.
+- `publishedAt`, optional.
+- `createdAt`.
+- `updatedAt`.
+
+### Media
+- `id`: UUID.
+- `projectId`.
+- `mediaType`: image or video.
+- `storageKey` or storage reference.
+- `originalFilename`.
+- `mimeType`.
+- `sizeBytes`.
+- `width`, optional.
+- `height`, optional.
+- `durationSeconds`, optional.
+- `altText`.
+- `sortOrder`.
+- `createdAt`.
+
+### Categories
+- `id`: UUID.
+- `name`.
+- `slug`: unique.
+- `description`, optional.
+- `createdAt`.
+- `updatedAt`.
+
+### Site Settings
+
+Create a suitable settings structure for editable content such as:
+
+- Business name.
+- Logo reference.
+- Brand description.
+- Contact email.
+- Phone number.
+- WhatsApp number.
+- Address.
+- Social links.
+- SEO defaults.
+- Homepage introduction.
+- Consultation call-to-action content.
+
+Add other tables, such as sessions or contact inquiries, if needed by the chosen authentication implementation and existing requirements.
+
+### Database engineering requirements
+
+- Define proper relationships and foreign keys.
+- Add appropriate indexes.
+- Use UUIDs consistently.
+- Apply unique constraints to email addresses and slugs.
+- Use transactions for operations that modify multiple related records.
+- Add created and updated timestamps.
+- Validate foreign-key relationships.
+- Implement safe pagination and filtering.
+- Use parameterized queries through Drizzle.
+- Organize the schema into maintainable files.
+- Configure Drizzle Kit and migration scripts.
+- Generate migrations and commit the schema/migration files to the project.
+- Provide a safe database initialization process.
+- Never reset or drop the existing database automatically.
+- Preserve existing data and migrate it safely if the current project already has a database.
+- Seed only development data where appropriate, never destructive production seed data.
+
+## 8. Light and Dark Theme
+
+Implement a complete light/dark theme system.
+
+Requirements:
+
+- A visible theme toggle in the existing navigation or header.
+- Persistent theme preference.
+- Respect system preference on the first visit when no preference exists.
+- Prevent theme flashing where practical.
+- Maintain correct contrast in both themes.
+- Apply theme styling to public pages, admin pages, forms, modals, dropdowns, tables, notifications, and loading states.
+- Ensure uploaded images remain visually appealing in both themes.
+- Avoid hardcoded colors that break the theme.
+- Use reusable CSS variables or the existing theme configuration.
+- Preserve the existing layout and component structure.
+
+The light theme should emphasize off-white backgrounds, cream surfaces, and warm brown accents.
+
+The dark theme should use deep brown and charcoal surfaces, with warm off-white text and appropriate brown accents.
+
+## 9. Architecture and Code Quality
+
+Maintain a clean, scalable project architecture.
+
+Prefer the existing folder conventions when they are reasonable. Otherwise, use a structure similar to:
+
+- `src/app/` — App Router pages, layouts, and route handlers.
+- `src/components/` — Reusable UI components.
+- `src/components/ui/` — Shared UI primitives.
+- `src/features/portfolio/` — Portfolio-related components and logic.
+- `src/features/admin/` — Admin-specific components.
+- `src/lib/` — Shared utilities, validation, authentication, and helpers.
+- `src/db/` — SQLite connection, Drizzle schema, and database utilities.
+- `src/db/schema/` — Database schema definitions.
+- `src/db/migrations/` — Generated database migrations.
+- `src/server/` — Server-only business logic and data access.
+- `src/server/services/` — Reusable application services.
+- `src/server/repositories/` — Database access abstractions where beneficial.
+- `src/server/validators/` — Server-side schemas and validation.
+- `public/` — Public static assets.
+- `scripts/` — Database initialization and maintenance scripts.
+
+Use a practical architecture rather than creating unnecessary abstractions.
+
+### Coding standards
+
+- Use TypeScript strict mode.
+- Avoid `any` unless genuinely necessary and explicitly justified.
+- Prefer reusable components over duplicated markup.
+- Separate UI, validation, business logic, and database access.
+- Keep database operations on the server.
+- Use Server Components by default.
+- Add Client Components only when client-side interactivity is needed.
+- Use Server Actions or Route Handlers appropriately.
+- Never expose database connections or server-only modules to client bundles.
+- Use consistent naming conventions and clear types.
+- Add error handling and structured logging.
+- Avoid unnecessary dependencies.
+- Remove dead code only after verifying it is genuinely unused.
+- Avoid unnecessary refactoring of working parts of the project.
+
+## 10. Security Requirements
+
+Treat security as a core requirement.
+
+Implement:
+
+- Authorization checks for every protected mutation.
+- Secure authentication and session management.
+- Password hashing.
+- Input validation on the server.
+- Safe file upload handling.
+- Rate limiting for login and other sensitive endpoints.
+- Protection against brute-force login attempts.
+- Safe database queries.
+- CSRF protection where required by the authentication and request architecture.
+- Safe output rendering to prevent XSS.
+- Secure handling of external video URLs.
+- Secure HTTP headers where appropriate.
+- Environment-variable validation.
+- Proper error messages that do not leak internal stack traces or secrets.
+- Appropriate logging without recording passwords, session tokens, or sensitive information.
+
+Do not rely on hiding dashboard links or checking authentication only in middleware or client components. Every protected server operation must verify authorization independently.
+
+## 11. SEO and Performance
+
+Implement production-quality SEO and performance.
+
+- Add appropriate metadata for every public page.
+- Add page-specific titles and descriptions.
+- Generate canonical URLs when the production site URL is configured.
+- Add Open Graph and social sharing metadata.
+- Generate a sitemap and robots configuration.
+- Add structured data where appropriate for the real business.
+- Use Next.js image optimization for compatible images.
+- Lazy-load below-the-fold media.
+- Optimize portfolio queries and pagination.
+- Prevent unnecessary client-side data fetching.
+- Avoid large client bundles.
+- Add loading and error boundaries where useful.
+- Provide custom not-found pages.
+- Use descriptive image alt text.
+- Avoid rendering unpublished projects in public pages or search engine metadata.
+
+Do not use fake SEO ratings, fake reviews, or fabricated business details.
+
+## 12. Production Configuration and Deployment
+
+Prepare the project for real deployment.
+
+- Create or update `.env.example`.
+- Keep real secrets out of source control.
+- Add required environment variable validation.
+- Configure database and media paths using environment variables where appropriate.
+- Provide development, build, start, database migration, and validation scripts.
+- Ensure the production build completes successfully.
+- Ensure the application can start in production.
+- Provide database backup and restore instructions.
+- Document how to create the first owner account securely.
+- Document the media storage configuration.
+- Document the SQLite persistence requirements for the selected hosting platform.
+- Ensure database migrations run deliberately and safely rather than destructively on every application startup.
+- Configure appropriate cache invalidation or revalidation so newly published projects appear on the public site.
+- Make sure the project does not depend on development-only behavior.
+
+If deploying to Vercel or another serverless platform, do not assume a local SQLite file or local uploads directory will persist. Explain the need for a compatible remote SQLite provider, persistent storage, or another supported production database/storage configuration. Keep SQLite as the requested database for the primary implementation.
+
+## 13. Testing
+
+Add appropriate tests for critical functionality.
+
+Include tests for:
+
+- Authentication and unauthorized access.
+- Owner-only project creation.
+- Project updates and deletion.
+- Publishing and unpublishing projects.
+- Slug uniqueness.
+- Category relationships.
+- File validation.
+- Public portfolio visibility.
+- Contact form validation.
+- Theme switching where practical.
+
+Use a compatible testing setup based on the existing project.
+
+Also run available checks such as:
+
+- TypeScript type checking.
+- Linting.
+- Database migration validation.
+- Production build.
+
+Fix errors introduced by your changes. Do not claim a check passed unless you actually ran it and verified the result.
+
+## 14. Implementation Workflow
+
+Work systematically and complete the implementation rather than merely giving me a plan.
+
+### Phase 1: Inspect
+
+Inspect the entire existing project, including:
+
+- `package.json`.
+- Next.js version.
+- Current routing structure.
+- Existing components and layouts.
+- Existing CSS and Tailwind configuration.
+- Existing theme implementation.
+- Existing backend and database setup.
+- Existing authentication.
+- Existing portfolio pages.
+- Existing assets and media.
+- Environment configuration.
+- Deployment configuration.
+
+Identify the changes required before editing.
+
+### Phase 2: Plan
+
+Create a concise implementation checklist based on the actual codebase.
+
+Identify which existing components can be reused and which need to be extended.
+
+Preserve all working features and existing content.
+
+### Phase 3: Implement
+
+Implement the changes incrementally.
+
+Prioritize:
+
+1. Existing UI preservation and design improvements.
+2. Database and migrations.
+3. Authentication and authorization.
+4. Admin dashboard.
+5. Project CRUD.
+6. Image and video uploads.
+7. Dynamic portfolio pages.
+8. Light/dark theme.
+9. Contact form and settings.
+10. SEO, performance, testing, and deployment preparation.
+
+Adjust this order if the existing architecture requires a different sequence.
+
+Do not stop after creating static UI components. Connect the interface to the actual database, authentication, and media storage.
+
+### Phase 4: Verify
+
+- Run the relevant tests.
+- Run TypeScript checks.
+- Run linting if configured.
+- Run database migrations safely.
+- Run a production build.
+- Fix errors caused by your changes.
+- Verify that existing functionality still works.
+- Check mobile responsiveness.
+- Check both themes.
+- Check that an unauthenticated visitor cannot access protected admin functionality.
+- Verify that creating and publishing a project makes it visible on the portfolio page.
+- Verify that unpublishing a project removes it from the public portfolio.
+- Verify that image and video uploads work within the configured storage and size limits.
+
+If a check cannot be completed because of missing credentials, external services, or environmental limitations, clearly identify the blocker rather than claiming success.
+
+### Phase 5: Final Report
+
+At completion, provide a concise report containing:
+
+- What was implemented.
+- Which existing features and components were preserved.
+- New and modified routes.
+- Database schema and migration files created.
+- Authentication and owner-account setup instructions.
+- Required environment variables.
+- Commands to install dependencies, migrate the database, create the initial owner account, and run the project.
+- Media storage configuration.
+- Tests and checks actually completed.
+- Any remaining issues or deployment requirements.
+
+## 15. Final Acceptance Criteria
+
+The project is complete only when:
+
+- The existing website remains recognizable and its working functionality is preserved.
+- The application is built with Next.js and TypeScript.
+- SQLite is the primary database, accessed through Drizzle ORM.
+- The owner can securely log in.
+- The owner can create, edit, publish, unpublish, feature, and delete projects.
+- The owner can upload images and videos.
+- Published projects appear automatically on the public works page.
+- Visitors can browse projects and view their detail pages.
+- Unpublished projects remain private from public portfolio routes.
+- The website supports light and dark themes.
+- The design uses a premium brown and off-white color scheme.
+- The site is responsive and accessible.
+- Database migrations are safe and reproducible.
+- Security checks are performed on the server.
+- Production build and type checks are verified.
+- Deployment and persistence requirements are documented.
+- There are no critical broken links, nonfunctional buttons, fake CRUD operations, or obvious placeholder implementations in completed features.
+
+**Start by inspecting the current codebase. Then implement the improvements directly in the existing project, preserve its established design, and continue until the application is working and verified. Do not replace the project with a new template, and do not stop at a proposal or mockup.**
