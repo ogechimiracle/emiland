@@ -88,15 +88,12 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess, onNavigateHom
             />
           </div>
 
-          {/* Initial credentials reminder banner for effortless first login */}
           <div className="p-3 rounded-xl bg-[#EDE5D8]/50 dark:bg-[#24201D] border border-[#E2D9CC] dark:border-[#38312B] text-xs text-[#786D63] dark:text-[#A3968A] space-y-1">
             <p className="font-semibold text-[#302720] dark:text-[#F5EFE6] flex items-center gap-1.5">
               <KeyRound className="w-3.5 h-3.5 text-[#6F4E37] dark:text-[#D4A373]" />
-              Initial Access Credentials:
+              Administrator access:
             </p>
-            <p>Email: <code className="font-mono text-[#302720] dark:text-[#F5EFE6]">owner@maisonterre.com</code></p>
-            <p>Password: <code className="font-mono text-[#302720] dark:text-[#F5EFE6]">Atelier2026!</code></p>
-            <p className="text-[11px] opacity-75">You can update your password at any time in the dashboard.</p>
+            <p>Sign in with the credentials configured for this installation.</p>
           </div>
 
           <button

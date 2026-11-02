@@ -20,17 +20,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuth = async (currentToken: string | null) => {
     try {
-      if (currentToken === 'fallback-owner-token') {
-        setUser({
-          id: 'usr_owner_default',
-          name: 'Emiland Laurent',
-          email: 'owner@maisonterre.com',
-          role: 'owner',
-        });
-        setIsLoading(false);
-        return;
-      }
-
       const headers: HeadersInit = {};
       if (currentToken) {
         headers['Authorization'] = `Bearer ${currentToken}`;
@@ -72,20 +61,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         data = JSON.parse(text);
       } catch {
-        // If server returned HTML (e.g. 404 during deployment propagation) and credentials match default owner
-        if (email.toLowerCase().trim() === 'owner@maisonterre.com' && pass === 'Atelier2026!') {
-          const fallbackUser: User = {
-            id: 'usr_owner_default',
-            name: 'Emiland Laurent',
-            email: 'owner@maisonterre.com',
-            role: 'owner',
-          };
-          setUser(fallbackUser);
-          setToken('fallback-owner-token');
-          localStorage.setItem('maison-token', 'fallback-owner-token');
-          return { success: true };
-        }
-
         return {
           success: false,
           error: `Server error (${res.status}). The server returned an HTML error page instead of JSON. Please verify vercel.json deployment.`,

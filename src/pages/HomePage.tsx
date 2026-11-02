@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Project, SiteSettings } from '../types';
 import { ArrowRight, Compass, Sparkles, Layers, Sliders, Maximize2, Check, Clock, ShieldCheck, MapPin } from 'lucide-react';
 import { MediaLightbox } from '../components/MediaLightbox';
-import { mergeProjects } from '../utils/storageSync';
 import heroInteriorImage from '../assets/images/hero_interior_living_1792750666855.jpg';
 
 interface HomePageProps {
@@ -12,11 +11,8 @@ interface HomePageProps {
 }
 
 export const HomePage: React.FC<HomePageProps> = ({ settings, onNavigate, onOpenConsultation }) => {
-  const [featuredProjects, setFeaturedProjects] = useState<Project[]>(() => {
-    const all = mergeProjects([]);
-    return all.filter((p) => p.featured === 1 || p.featured === (true as any));
-  });
-  const [loading, setLoading] = useState(false);
+  const [featuredProjects, setFeaturedProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Lightbox state
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -25,20 +21,17 @@ export const HomePage: React.FC<HomePageProps> = ({ settings, onNavigate, onOpen
   const [activeProject, setActiveProject] = useState<Project | null>(null);
 
   useEffect(() => {
-    fetch('/api/projects?featured=true')
+    fetch('/api/projects')
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
-          const merged = mergeProjects(data);
-          const featured = merged.filter((p) => p.featured === 1 || p.featured === (true as any));
-          setFeaturedProjects(featured.length > 0 ? featured : merged.slice(0, 4));
+          const projects = data as Project[];
+          const featured = projects.filter((p) => Number(p.featured) === 1);
+          setFeaturedProjects(featured.length > 0 ? featured : projects.slice(0, 4));
         }
       })
       .catch((err) => {
         console.error('Failed to load featured projects:', err);
-        const all = mergeProjects([]);
-        const featured = all.filter((p) => p.featured === 1 || p.featured === (true as any));
-        setFeaturedProjects(featured.length > 0 ? featured : all.slice(0, 4));
       })
       .finally(() => setLoading(false));
   }, []);

@@ -108,6 +108,7 @@ export async function initializeDatabase() {
       original_filename TEXT NOT NULL,
       mime_type TEXT NOT NULL,
       size_bytes INTEGER NOT NULL DEFAULT 0,
+      file_data BLOB,
       width INTEGER,
       height INTEGER,
       duration_seconds INTEGER,
@@ -116,6 +117,11 @@ export async function initializeDatabase() {
       created_at TEXT NOT NULL
     );
   `);
+
+  const mediaColumns = await client.execute('PRAGMA table_info(media)');
+  if (!mediaColumns.rows.some((column) => column.name === 'file_data')) {
+    await client.execute('ALTER TABLE media ADD COLUMN file_data BLOB');
+  }
 
   await client.execute(`
     CREATE TABLE IF NOT EXISTS site_settings (

@@ -1,16 +1,10 @@
 import express from 'express';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
 import cookieParser from 'cookie-parser';
 import multer from 'multer';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { client, ensureDbInitialized } from './src/db/index';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 export const app = express();
 
@@ -30,7 +24,6 @@ app.use(async (_req, res, next) => {
   }
 });
 
-// Detect environment: on Vercel / serverless, filesystem is read-only outside /tmp
 const isServerless = Boolean(
   process.env.VERCEL ||
   process.env.VERCEL_ENV ||
@@ -38,33 +31,10 @@ const isServerless = Boolean(
   process.env.LAMBDA_TASK_ROOT
 );
 
-const uploadsDir = isServerless ? '/tmp/uploads' : path.resolve(process.cwd(), 'uploads');
-try {
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-  }
-} catch (e) {
-  console.warn('Could not create uploads directory:', e);
-}
-
-app.use('/uploads', express.static(uploadsDir));
-
-// Multer storage for media uploads
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const safeName = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`;
-    cb(null, safeName);
-  },
-});
-
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: {
-    fileSize: 100 * 1024 * 1024,
+    fileSize: 4 * 1024 * 1024,
   },
   fileFilter: (_req, file, cb) => {
     const allowedMimes = [
@@ -79,7 +49,7 @@ const upload = multer({
     if (allowedMimes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error(`Unsupported file type: ${file.mimetype}. Allowed: JPEG, PNG, WebP, AVIF, MP4, WebM.`));
+      cb(new Error(`Unsupported file type: ${file.mimetype}. Allowed: JPEG, PNG, WebP, AVIF, MP4, WebM, MOV.`));
     }
   },
 });
@@ -105,15 +75,6 @@ function verifyAuth(req: express.Request): { userId: string; email: string } | n
   }
 
   if (!token) return null;
-
-  // Accept emergency owner tokens so the owner is never locked out on production
-  if (
-    token === 'fallback-owner-token' ||
-    token === 'offline-session-token' ||
-    token.startsWith('fallback-')
-  ) {
-    return { userId: 'usr_owner_default', email: 'owner@maisonterre.com' };
-  }
 
   try {
     if (token.includes('.')) {
@@ -175,6 +136,75 @@ function formatProjectRow(row: any) {
   };
 }
 
+async function syncProjectMedia(projectId: string, mediaUrls: string[], title: string, slug: string, mediaType: string) {
+  const urls = Array.from(new Set(mediaUrls.filter(Boolean)));
+  const existing = await client.execute({
+    sql: 'SELECT id, storage_key FROM media WHERE project_id = ?',
+    args: [projectId],
+  });
+  const urlSet = new Set(urls);
+
+  for (const row of existing.rows as any[]) {
+    if (!urlSet.has(row.storage_key)) {
+      await client.execute({ sql: 'DELETE FROM media WHERE id = ?', args: [row.id] });
+    }
+  }
+
+  for (let index = 0; index < urls.length; index++) {
+    const url = urls[index];
+    const fileId = url.match(/^\/api\/media\/([A-Za-z0-9_-]+)$/)?.[1];
+    const mediaKind = index === 0 && mediaType === 'video'
+      ? 'video'
+      : /\.(mp4|webm|mov)(?:[?#].*)?$/i.test(url) || /youtube|vimeo/i.test(url)
+        ? 'video'
+        : 'image';
+    const altText = index === 0 ? title : `${title} view ${index}`;
+
+    if (fileId) {
+      const uploadResult = await client.execute({
+        sql: 'SELECT id FROM media WHERE id = ? AND file_data IS NOT NULL',
+        args: [fileId],
+      });
+      if (uploadResult.rows.length > 0) {
+        await client.execute({
+          sql: 'UPDATE media SET project_id = ?, media_type = ?, alt_text = ?, sort_order = ? WHERE id = ?',
+          args: [projectId, mediaKind, altText, index, fileId],
+        });
+        continue;
+      }
+    }
+
+    const existingReference = await client.execute({
+      sql: 'SELECT id FROM media WHERE project_id = ? AND storage_key = ? LIMIT 1',
+      args: [projectId, url],
+    });
+    if (existingReference.rows.length > 0) {
+      await client.execute({
+        sql: 'UPDATE media SET media_type = ?, alt_text = ?, sort_order = ? WHERE id = ?',
+        args: [mediaKind, altText, index, existingReference.rows[0].id],
+      });
+      continue;
+    }
+
+    await client.execute({
+      sql: `INSERT INTO media (id, project_id, media_type, storage_key, original_filename, mime_type, size_bytes, alt_text, sort_order, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [
+        `med_${projectId}_${index}_${crypto.randomBytes(3).toString('hex')}`,
+        projectId,
+        mediaKind,
+        url,
+        `${slug}-${index === 0 ? 'cover' : `gallery-${index}`}`,
+        mediaKind === 'video' ? 'video/mp4' : 'image/jpeg',
+        0,
+        altText,
+        index,
+        new Date().toISOString(),
+      ],
+    });
+  }
+}
+
 // -------------------------------------------------------------
 // API ROUTER DEFINITIONS
 // -------------------------------------------------------------
@@ -195,28 +225,6 @@ apiRouter.post('/auth/login', async (req, res) => {
     }
 
     const cleanEmail = email.toLowerCase().trim();
-
-    // Direct verified owner check for guaranteed instant login in any cloud or local environment
-    if (cleanEmail === 'owner@maisonterre.com' && password === 'Atelier2026!') {
-      const { token } = generateSession('usr_owner_default', cleanEmail);
-      res.cookie('session_token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
-      res.json({
-        success: true,
-        token,
-        user: {
-          id: 'usr_owner_default',
-          name: 'Emiland Laurent',
-          email: cleanEmail,
-          role: 'owner',
-        },
-      });
-      return;
-    }
 
     const userResult = await client.execute({
       sql: 'SELECT * FROM users WHERE email = ? LIMIT 1',
@@ -279,18 +287,6 @@ apiRouter.get('/auth/me', async (req, res) => {
   });
 
   if (userResult.rows.length === 0) {
-    if (auth.userId === 'usr_owner_default') {
-      res.json({
-        authenticated: true,
-        user: {
-          id: 'usr_owner_default',
-          name: 'Emiland Laurent',
-          email: 'owner@maisonterre.com',
-          role: 'owner',
-        },
-      });
-      return;
-    }
     res.json({ authenticated: false, user: null });
     return;
   }
@@ -417,13 +413,25 @@ apiRouter.get('/projects/:slugOrId', async (req, res) => {
     const project = formatProjectRow(result.rows[0]);
 
     const mediaResult = await client.execute({
-      sql: `SELECT * FROM media WHERE project_id = ? ORDER BY sort_order ASC, created_at ASC`,
+      sql: `SELECT id, project_id, media_type, storage_key, original_filename, mime_type, size_bytes,
+                   width, height, duration_seconds, alt_text, sort_order, created_at
+            FROM media WHERE project_id = ? ORDER BY sort_order ASC, created_at ASC`,
       args: [project.id],
     });
 
     res.json({
       ...project,
-      gallery: mediaResult.rows,
+      gallery: mediaResult.rows.map((row: any) => ({
+        ...row,
+        projectId: row.project_id,
+        mediaType: row.media_type,
+        storageKey: row.storage_key,
+        originalFilename: row.original_filename,
+        mimeType: row.mime_type,
+        sizeBytes: row.size_bytes,
+        sortOrder: row.sort_order,
+        altText: row.alt_text,
+      })),
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to fetch project' });
@@ -505,45 +513,7 @@ apiRouter.post('/projects', requireAuth, async (req, res) => {
       ],
     });
 
-    await client.execute({
-      sql: `INSERT INTO media (id, project_id, media_type, storage_key, original_filename, mime_type, size_bytes, alt_text, sort_order, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      args: [
-        `med_${id}_cover`,
-        id,
-        mediaType === 'video' ? 'video' : 'image',
-        coverMediaUrl,
-        `${slug}-cover`,
-        'image/jpeg',
-        0,
-        title,
-        0,
-        now,
-      ],
-    });
-
-    for (let i = 0; i < galleryUrls.length; i++) {
-      const gUrl = galleryUrls[i];
-      if (gUrl && gUrl !== coverMediaUrl) {
-        const isVid = gUrl.endsWith('.mp4') || gUrl.endsWith('.webm') || gUrl.includes('youtube') || gUrl.includes('vimeo');
-        await client.execute({
-          sql: `INSERT INTO media (id, project_id, media_type, storage_key, original_filename, mime_type, size_bytes, alt_text, sort_order, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          args: [
-            `med_${id}_gal_${i}`,
-            id,
-            isVid ? 'video' : 'image',
-            gUrl,
-            `${slug}-gallery-${i + 1}`,
-            isVid ? 'video/mp4' : 'image/jpeg',
-            0,
-            `${title} view ${i + 1}`,
-            i + 1,
-            now,
-          ],
-        });
-      }
-    }
+    await syncProjectMedia(id, [coverMediaUrl, ...galleryUrls, videoUrl], title, slug, mediaType);
 
     res.status(201).json({ success: true, id, slug });
   } catch (err: any) {
@@ -626,52 +596,7 @@ apiRouter.put('/projects/:id', requireAuth, async (req, res) => {
       ],
     });
 
-    if (galleryUrls) {
-      await client.execute({
-        sql: 'DELETE FROM media WHERE project_id = ?',
-        args: [id],
-      });
-
-      await client.execute({
-        sql: `INSERT INTO media (id, project_id, media_type, storage_key, original_filename, mime_type, size_bytes, alt_text, sort_order, created_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [
-          `med_${id}_cover_${Date.now()}`,
-          id,
-          mediaType === 'video' ? 'video' : 'image',
-          coverMediaUrl,
-          `${slug}-cover`,
-          'image/jpeg',
-          0,
-          title,
-          0,
-          now,
-        ],
-      });
-
-      for (let i = 0; i < galleryUrls.length; i++) {
-        const gUrl = galleryUrls[i];
-        if (gUrl && gUrl !== coverMediaUrl) {
-          const isVid = gUrl.endsWith('.mp4') || gUrl.endsWith('.webm') || gUrl.includes('youtube') || gUrl.includes('vimeo');
-          await client.execute({
-            sql: `INSERT INTO media (id, project_id, media_type, storage_key, original_filename, mime_type, size_bytes, alt_text, sort_order, created_at)
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            args: [
-              `med_${id}_gal_${i}_${Date.now()}`,
-              id,
-              isVid ? 'video' : 'image',
-              gUrl,
-              `${slug}-view-${i + 1}`,
-              isVid ? 'video/mp4' : 'image/jpeg',
-              0,
-              `${title} view ${i + 1}`,
-              i + 1,
-              now,
-            ],
-          });
-        }
-      }
-    }
+    await syncProjectMedia(id, [coverMediaUrl, ...galleryUrls, videoUrl], title, slug, mediaType);
 
     res.json({ success: true, message: 'Project updated successfully', slug });
   } catch (err: any) {
@@ -733,26 +658,53 @@ apiRouter.patch('/projects/:id/featured', requireAuth, async (req, res) => {
   }
 });
 
+// Media: Serve uploaded file bytes from SQLite
+apiRouter.get('/media/:id', async (req, res) => {
+  try {
+    const result = await client.execute({
+      sql: 'SELECT file_data, mime_type, original_filename FROM media WHERE id = ? AND file_data IS NOT NULL',
+      args: [req.params.id],
+    });
+    if (result.rows.length === 0) {
+      res.status(404).json({ error: 'Media not found' });
+      return;
+    }
+
+    const mediaFile = result.rows[0] as any;
+    res.setHeader('Content-Type', mediaFile.mime_type);
+    res.setHeader('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(mediaFile.original_filename)}`);
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.send(Buffer.from(mediaFile.file_data as Uint8Array));
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to read media file' });
+  }
+});
+
 // Media: Upload
-apiRouter.post('/media/upload', requireAuth, upload.single('file'), (req, res) => {
+apiRouter.post('/media/upload', requireAuth, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       res.status(400).json({ error: 'No file uploaded' });
       return;
     }
 
-    let publicUrl = `/uploads/${req.file.filename}`;
-    if (isServerless) {
-      // In serverless, local disk cannot be served to web requests. Return Data URL for persistent instant rendering.
-      try {
-        const fileData = fs.readFileSync(req.file.path);
-        const b64 = fileData.toString('base64');
-        publicUrl = `data:${req.file.mimetype};base64,${b64}`;
-        try { fs.unlinkSync(req.file.path); } catch {}
-      } catch (readErr) {
-        console.warn('Could not read temp upload:', readErr);
-      }
-    }
+    const id = `med_${Date.now()}_${crypto.randomBytes(6).toString('hex')}`;
+    const publicUrl = `/api/media/${id}`;
+    await client.execute({
+      sql: `INSERT INTO media (id, project_id, media_type, storage_key, original_filename, mime_type, size_bytes, file_data, alt_text, sort_order, created_at)
+            VALUES (?, NULL, ?, ?, ?, ?, ?, ?, '', 0, ?)`,
+      args: [
+        id,
+        req.file.mimetype.startsWith('video/') ? 'video' : 'image',
+        publicUrl,
+        req.file.originalname,
+        req.file.mimetype,
+        req.file.size,
+        new Uint8Array(req.file.buffer),
+        new Date().toISOString(),
+      ],
+    });
 
     res.json({
       success: true,
@@ -998,6 +950,16 @@ app.use((req, res, next) => {
 // 3. Catch-all for /api that did not match any route -> return JSON 404, NEVER an HTML error page!
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: 'API endpoint not found' });
+});
+
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+    res.status(413).json({ error: 'Files must be 4 MB or smaller.' });
+    return;
+  }
+  if (err) {
+    res.status(400).json({ error: err.message || 'Request failed' });
+  }
 });
 
 export { ensureDbInitialized };

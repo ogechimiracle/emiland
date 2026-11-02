@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, blob } from 'drizzle-orm/sqlite-core';
 
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
@@ -49,6 +49,7 @@ export const media = sqliteTable('media', {
   originalFilename: text('original_filename').notNull(),
   mimeType: text('mime_type').notNull(),
   sizeBytes: integer('size_bytes').notNull().default(0),
+  fileData: blob('file_data', { mode: 'buffer' }),
   width: integer('width'),
   height: integer('height'),
   durationSeconds: integer('duration_seconds'),

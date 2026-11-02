@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Project, Category } from '../types';
 import { Search, SlidersHorizontal, Maximize2, Play, ArrowRight, FolderKanban } from 'lucide-react';
 import { MediaLightbox } from '../components/MediaLightbox';
-import { mergeProjects, mergeCategories } from '../utils/storageSync';
 
 interface WorksPageProps {
   onNavigate: (path: string) => void;
@@ -10,8 +9,8 @@ interface WorksPageProps {
 }
 
 export const WorksPage: React.FC<WorksPageProps> = ({ onNavigate, onOpenConsultation }) => {
-  const [projects, setProjects] = useState<Project[]>(() => mergeProjects([]));
-  const [categories, setCategories] = useState<Category[]>(() => mergeCategories([]));
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -28,11 +27,11 @@ export const WorksPage: React.FC<WorksPageProps> = ({ onNavigate, onOpenConsulta
     fetch('/api/categories')
       .then((res) => res.json())
       .then((data) => {
-        if (Array.isArray(data)) setCategories(mergeCategories(data));
+        if (Array.isArray(data)) setCategories(data);
       })
       .catch((err) => {
         console.error('Failed to load categories', err);
-        setCategories(mergeCategories([]));
+        setCategories([]);
       });
   }, []);
 
@@ -53,7 +52,7 @@ export const WorksPage: React.FC<WorksPageProps> = ({ onNavigate, onOpenConsulta
         if (!Array.isArray(data)) {
           throw new Error('Projects API returned an invalid response');
         }
-        setProjects(mergeProjects(data as Project[]));
+        setProjects(data as Project[]);
       })
       .catch((err: unknown) => {
         console.error('Failed to load projects', err);
@@ -149,7 +148,7 @@ export const WorksPage: React.FC<WorksPageProps> = ({ onNavigate, onOpenConsulta
           role="alert"
           className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200"
         >
-          {projectsError}. Showing any projects already available on this device.
+          {projectsError}
         </p>
       )}
       {loading ? (

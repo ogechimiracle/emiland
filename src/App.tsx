@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SiteSettings } from './types';
-import { getCachedSettings, saveCachedSettings } from './utils/storageSync';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { ConsultationModal } from './components/ConsultationModal';
@@ -24,7 +23,7 @@ function AppContent() {
     return typeof window !== 'undefined' ? window.location.pathname : '/';
   });
 
-  const [settings, setSettings] = useState<Partial<SiteSettings>>(() => getCachedSettings());
+  const [settings, setSettings] = useState<Partial<SiteSettings>>({});
   const [consultationOpen, setConsultationOpen] = useState(false);
   const [preselectedService, setPreselectedService] = useState<string | undefined>();
   const [preselectedProject, setPreselectedProject] = useState<string | undefined>();
@@ -43,9 +42,7 @@ function AppContent() {
         .then((res) => res.json())
         .then((data) => {
           if (data && typeof data === 'object') {
-            const merged = { ...getCachedSettings(), ...data };
-            setSettings(merged);
-            saveCachedSettings(merged);
+            setSettings(data);
           }
         })
         .catch((err) => console.error('Failed to load settings', err));
@@ -56,7 +53,6 @@ function AppContent() {
     const handleSettingsUpdated = (e: any) => {
       if (e.detail) {
         setSettings(e.detail);
-        saveCachedSettings(e.detail);
       } else {
         loadSettings();
       }

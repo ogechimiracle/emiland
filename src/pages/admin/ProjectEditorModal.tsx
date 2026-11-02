@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Project, Category } from '../../types';
-import { readFileAsOptimizedDataUrl, parseVideoInfo } from '../../utils/mediaUtils';
+import { parseVideoInfo } from '../../utils/mediaUtils';
 import {
   X,
   Upload,
@@ -117,7 +117,27 @@ export const ProjectEditorModal: React.FC<ProjectEditorModalProps> = ({
     }));
   };
 
-  // Upload cover image: read & compress via canvas for 100% reliable local/cloud rendering
+  const uploadMedia = async (file: File): Promise<{ url: string; mediaType: 'image' | 'video' }> => {
+    const activeToken = token || (typeof window !== 'undefined' ? localStorage.getItem('maison-token') : null);
+    const headers: HeadersInit = {};
+    if (activeToken) headers.Authorization = `Bearer ${activeToken}`;
+    const body = new FormData();
+    body.append('file', file);
+
+    const res = await fetch('/api/media/upload', {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+      body,
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data?.success || typeof data.url !== 'string') {
+      throw new Error(data?.error || `Upload failed (${res.status})`);
+    }
+
+    return { url: data.url, mediaType: data.mediaType };
+  };
+
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -126,36 +146,19 @@ export const ProjectEditorModal: React.FC<ProjectEditorModalProps> = ({
     setError(null);
 
     try {
-      // 1. Generate optimized data URL in browser
-      const { url: optimizedUrl, mediaType } = await readFileAsOptimizedDataUrl(file);
+      const { url: uploadedUrl, mediaType } = await uploadMedia(file);
 
       setFormData((prev) => ({
         ...prev,
-        coverMediaUrl: optimizedUrl,
+        coverMediaUrl: uploadedUrl,
         mediaType: mediaType === 'video' ? 'video' : prev.mediaType,
       }));
-      setCustomCoverUrl(optimizedUrl);
-
-      // 2. Also attempt server upload if token available, but data URL is already set safely
-      const activeToken = token || (typeof window !== 'undefined' ? localStorage.getItem('maison-token') : null) || 'fallback-owner-token';
-      const body = new FormData();
-      body.append('file', file);
-      try {
-        const res = await fetch('/api/media/upload', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${activeToken}` },
-          body,
-        });
-        if (res.ok) {
-          await res.json();
-        }
-      } catch {
-        // Fallback data URL is already active, so ignore server error
-      }
+      setCustomCoverUrl(uploadedUrl);
     } catch (err: any) {
       setError(err.message || 'File upload error');
     } finally {
       setUploadingCover(false);
+      e.target.value = '';
     }
   };
 
@@ -168,16 +171,17 @@ export const ProjectEditorModal: React.FC<ProjectEditorModalProps> = ({
     setUploadingCover(true);
 
     try {
-      const { url: videoDataUrl } = await readFileAsOptimizedDataUrl(file);
+      const { url: uploadedUrl } = await uploadMedia(file);
       setFormData((prev) => ({
         ...prev,
         mediaType: 'video',
-        videoUrl: videoDataUrl,
+        videoUrl: uploadedUrl,
       }));
     } catch (err: any) {
-      setError(err.message || 'Video read error. Please use a YouTube or direct MP4 URL.');
+      setError(err.message || 'Video upload error. Please use a YouTube or direct MP4 URL.');
     } finally {
       setUploadingCover(false);
+      e.target.value = '';
     }
   };
 
@@ -192,12 +196,8 @@ export const ProjectEditorModal: React.FC<ProjectEditorModalProps> = ({
     try {
       const newUrls: string[] = [];
       for (let i = 0; i < files.length; i++) {
-        try {
-          const { url } = await readFileAsOptimizedDataUrl(files[i]);
-          if (url) newUrls.push(url);
-        } catch (fileErr) {
-          console.warn('Skipping file due to error:', fileErr);
-        }
+        const { url } = await uploadMedia(files[i]);
+        newUrls.push(url);
       }
       setFormData((prev) => ({
         ...prev,
@@ -207,6 +207,7 @@ export const ProjectEditorModal: React.FC<ProjectEditorModalProps> = ({
       setError(err.message || 'Gallery upload error');
     } finally {
       setUploadingGallery(false);
+      e.target.value = '';
     }
   };
 
@@ -226,24 +227,12 @@ export const ProjectEditorModal: React.FC<ProjectEditorModalProps> = ({
     const url = isEdit ? `/api/projects/${projectToEdit.id}` : '/api/projects';
     const method = isEdit ? 'PUT' : 'POST';
 
-    const activeToken =
-      token || (typeof window !== 'undefined' ? localStorage.getItem('maison-token') : null) || 'fallback-owner-token';
-
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${activeToken}`,
-    };
+    const activeToken = token || (typeof window !== 'undefined' ? localStorage.getItem('maison-token') : null);
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+    if (activeToken) headers.Authorization = `Bearer ${activeToken}`;
 
     try {
       const requestBody = JSON.stringify(formData);
-      const requestSize = new TextEncoder().encode(requestBody).byteLength;
-      const maxRequestSize = 4 * 1024 * 1024;
-      if (requestSize > maxRequestSize) {
-        throw new Error(
-          `Project data is ${(requestSize / (1024 * 1024)).toFixed(1)} MB. Vercel allows requests up to 4.5 MB. Remove some gallery images or use smaller files, then save again.`,
-        );
-      }
-
       const res = await fetch(url, {
         method,
         headers,
@@ -461,10 +450,10 @@ export const ProjectEditorModal: React.FC<ProjectEditorModalProps> = ({
               <div className="flex flex-col sm:flex-row items-center gap-4">
                 <label className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#6F4E37] dark:bg-[#A67C52] hover:bg-[#3E2B23] transition-colors cursor-pointer shrink-0">
                   {uploadingCover ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                  <span>Choose Image File (Auto-Optimized)</span>
+                  <span>Choose Image File (max 4 MB)</span>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp,image/avif"
                     onChange={handleCoverUpload}
                     className="hidden"
                   />
@@ -592,7 +581,7 @@ export const ProjectEditorModal: React.FC<ProjectEditorModalProps> = ({
                 <input
                   type="file"
                   multiple
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp,image/avif"
                   onChange={handleGalleryUpload}
                   className="hidden"
                 />

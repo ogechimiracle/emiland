@@ -3,16 +3,6 @@ import { useAuth } from '../../context/AuthContext';
 import { Project, Category, SiteSettings, Inquiry, DashboardStats } from '../../types';
 import { ProjectEditorModal } from './ProjectEditorModal';
 import {
-  mergeProjects,
-  saveCachedProject,
-  removeCachedProject,
-  mergeCategories,
-  saveCachedCategory,
-  removeCachedCategory,
-  saveCachedSettings,
-  getCachedSettings,
-} from '../../utils/storageSync';
-import {
   FolderKanban,
   Plus,
   Eye,
@@ -59,6 +49,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateHome, 
   const [projects, setProjects] = useState<Project[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
+  const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [projectSearch, setProjectSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
 
@@ -80,6 +71,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateHome, 
   const [newCatName, setNewCatName] = useState('');
   const [newCatDesc, setNewCatDesc] = useState('');
   const [savingCat, setSavingCat] = useState(false);
+  const [categoryError, setCategoryError] = useState<string | null>(null);
 
   // Change Password
   const [currentPassword, setCurrentPassword] = useState('');
@@ -90,7 +82,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateHome, 
   const [changingPwd, setChangingPwd] = useState(false);
 
   const getActiveToken = () => {
-    return token || (typeof window !== 'undefined' ? localStorage.getItem('maison-token') : null) || 'fallback-owner-token';
+    return token || (typeof window !== 'undefined' ? localStorage.getItem('maison-token') : null);
   };
 
   const fetchStats = async () => {
@@ -118,14 +110,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateHome, 
         try {
           const data = JSON.parse(text);
           if (Array.isArray(data)) {
-            setCategories(mergeCategories(data));
+            setCategories(data);
             return;
           }
         } catch {}
       }
-      setCategories(mergeCategories([]));
+      setCategories([]);
     } catch (err) {
-      setCategories(mergeCategories([]));
+      setCategories([]);
       console.error('Failed to fetch categories:', err);
     }
   };
@@ -141,14 +133,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateHome, 
         try {
           const data = JSON.parse(text);
           if (Array.isArray(data)) {
-            setProjects(mergeProjects(data));
+            setProjects(data);
             return;
           }
         } catch {}
       }
-      setProjects(mergeProjects([]));
+      setProjects([]);
     } catch (err) {
-      setProjects(mergeProjects([]));
+      setProjects([]);
       console.error('Failed to fetch projects:', err);
     } finally {
       setLoadingProjects(false);
@@ -177,20 +169,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateHome, 
 
   const fetchSettings = async () => {
     try {
-      const cached = getCachedSettings();
-      if (cached && Object.keys(cached).length > 0) {
-        setSettingsForm(cached);
-      }
       const res = await fetch('/api/settings');
       if (res.ok) {
         const text = await res.text();
         try {
           const data = JSON.parse(text);
-          setSettingsForm({ ...cached, ...data });
+          setSettingsForm(data);
         } catch {}
       }
     } catch (err) {
       console.error('Failed to fetch settings:', err);
+    }
+  };
+
+  const openProjectEditor = async (project: Project) => {
+    try {
+      const activeToken = getActiveToken();
+      const headers: HeadersInit = {};
+      if (activeToken) headers.Authorization = `Bearer ${activeToken}`;
+      const res = await fetch(`/api/projects/${project.id}`, { headers });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Failed to load project details');
+      setEditingProject(data);
+      setEditorOpen(true);
+    } catch (err) {
+      setDashboardError(err instanceof Error ? err.message : 'Failed to load project details');
     }
   };
 
@@ -208,9 +211,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateHome, 
   // Project Mutations
   const togglePublish = async (proj: Project) => {
     const newStatus = proj.status === 'published' ? 'draft' : 'published';
-    const updatedProj = { ...proj, status: newStatus as any };
-    saveCachedProject(updatedProj);
-    setProjects((prev) => prev.map((p) => (p.id === proj.id ? updatedProj : p)));
 
     try {
       const activeToken = getActiveToken();
@@ -218,23 +218,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateHome, 
         'Content-Type': 'application/json',
         Authorization: `Bearer ${activeToken}`,
       };
-      await fetch(`/api/projects/${proj.id}/publish`, {
+      const res = await fetch(`/api/projects/${proj.id}/publish`, {
         method: 'PATCH',
         headers,
         body: JSON.stringify({ status: newStatus }),
       });
+      if (!res.ok) throw new Error((await res.json()).error || 'Failed to update project status');
       fetchProjects();
       fetchStats();
     } catch (err) {
       console.error('Toggle status error', err);
+      setDashboardError(err instanceof Error ? err.message : 'Failed to update project status');
     }
   };
 
   const toggleFeatured = async (proj: Project) => {
     const newFeatured = proj.featured === 1 ? 0 : 1;
-    const updatedProj = { ...proj, featured: newFeatured };
-    saveCachedProject(updatedProj);
-    setProjects((prev) => prev.map((p) => (p.id === proj.id ? updatedProj : p)));
 
     try {
       const activeToken = getActiveToken();
@@ -242,35 +241,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateHome, 
         'Content-Type': 'application/json',
         Authorization: `Bearer ${activeToken}`,
       };
-      await fetch(`/api/projects/${proj.id}/featured`, {
+      const res = await fetch(`/api/projects/${proj.id}/featured`, {
         method: 'PATCH',
         headers,
         body: JSON.stringify({ featured: newFeatured }),
       });
+      if (!res.ok) throw new Error((await res.json()).error || 'Failed to update featured project');
       fetchProjects();
       fetchStats();
     } catch (err) {
       console.error('Toggle featured error', err);
+      setDashboardError(err instanceof Error ? err.message : 'Failed to update featured project');
     }
   };
 
   const deleteProject = async (id: string, title: string) => {
     if (!window.confirm(`Permanently remove project "${title}"?`)) return;
 
-    removeCachedProject(id);
-    setProjects((prev) => prev.filter((p) => p.id !== id));
-
     try {
       const activeToken = getActiveToken();
       const headers: HeadersInit = { Authorization: `Bearer ${activeToken}` };
-      await fetch(`/api/projects/${id}`, {
+      const res = await fetch(`/api/projects/${id}`, {
         method: 'DELETE',
         headers,
       });
+      if (!res.ok) throw new Error((await res.json()).error || 'Failed to delete project');
       fetchProjects();
       fetchStats();
     } catch (err) {
       console.error('Delete error', err);
+      setDashboardError(err instanceof Error ? err.message : 'Failed to delete project');
     }
   };
 
@@ -279,25 +279,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateHome, 
     e.preventDefault();
     if (!newCatName.trim()) return;
     setSavingCat(true);
+    setCategoryError(null);
 
-    const slug = newCatName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `cat-${Date.now()}`;
-    const newCatObj: Category = {
-      id: `cat_${Date.now()}`,
-      name: newCatName.trim(),
-      slug,
-      description: newCatDesc.trim(),
-      sortOrder: categories.length + 1,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    // Save to persistent local storage cache and state immediately
-    saveCachedCategory(newCatObj);
-    setCategories((prev) => [...prev, newCatObj]);
     const nameToAdd = newCatName.trim();
     const descToAdd = newCatDesc.trim();
-    setNewCatName('');
-    setNewCatDesc('');
 
     try {
       const activeToken = getActiveToken();
@@ -310,11 +295,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateHome, 
         headers,
         body: JSON.stringify({ name: nameToAdd, description: descToAdd }),
       });
-      if (res.ok) {
-        fetchCategories();
-      }
+      if (!res.ok) throw new Error((await res.json()).error || 'Failed to create category');
+      setNewCatName('');
+      setNewCatDesc('');
+      await fetchCategories();
     } catch (err) {
       console.error('Failed to create category on server:', err);
+      setCategoryError(err instanceof Error ? err.message : 'Failed to create category');
     } finally {
       setSavingCat(false);
     }
@@ -323,16 +310,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateHome, 
   const handleDeleteCategory = async (id: string, name: string) => {
     if (!window.confirm(`Delete category "${name}"? Existing projects will remain unassigned.`)) return;
 
-    removeCachedCategory(id);
-    setCategories((prev) => prev.filter((c) => c.id !== id));
-
+    setCategoryError(null);
     try {
       const activeToken = getActiveToken();
       const headers: HeadersInit = { Authorization: `Bearer ${activeToken}` };
-      await fetch(`/api/categories/${id}`, { method: 'DELETE', headers });
-      fetchCategories();
+      const res = await fetch(`/api/categories/${id}`, { method: 'DELETE', headers });
+      if (!res.ok) throw new Error((await res.json()).error || 'Failed to delete category');
+      await fetchCategories();
     } catch (err) {
       console.error('Delete category error', err);
+      setCategoryError(err instanceof Error ? err.message : 'Failed to delete category');
     }
   };
 
@@ -342,9 +329,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateHome, 
     setSavingSettings(true);
     setSettingsSuccess(false);
     setSettingsError(null);
-
-    // Save to local cache immediately
-    saveCachedSettings(settingsForm);
 
     try {
       const activeToken = getActiveToken();
@@ -366,9 +350,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateHome, 
         data = JSON.parse(text);
       } catch {}
 
+      if (!res.ok) throw new Error(data?.error || `Settings save failed (${res.status})`);
       if (data?.settings) {
         setSettingsForm(data.settings);
-        saveCachedSettings(data.settings);
       }
 
       setSettingsSuccess(true);
@@ -377,12 +361,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateHome, 
       }
       setTimeout(() => setSettingsSuccess(false), 5000);
     } catch (err: any) {
-      // Fallback: local storage is already saved
-      setSettingsSuccess(true);
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('settings-updated', { detail: settingsForm }));
-      }
-      setTimeout(() => setSettingsSuccess(false), 5000);
+      setSettingsError(err.message || 'Failed to save settings to the server.');
     } finally {
       setSavingSettings(false);
     }
@@ -459,6 +438,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateHome, 
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-10 space-y-10">
+
+      {dashboardError && (
+        <div role="alert" className="flex items-center justify-between gap-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300">
+          <span>{dashboardError}</span>
+          <button type="button" onClick={() => setDashboardError(null)} aria-label="Dismiss error">
+            <AlertCircle className="w-4 h-4" />
+          </button>
+        </div>
+      )}
       
       {/* Top Banner with greeting and site link */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#E2D9CC] dark:border-[#2D2622]">
@@ -700,10 +688,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateHome, 
                           </button>
 
                           <button
-                            onClick={() => {
-                              setEditingProject(p);
-                              setEditorOpen(true);
-                            }}
+                            onClick={() => openProjectEditor(p)}
                             title="Edit Project"
                             className="p-1.5 rounded-lg text-[#6F4E37] dark:text-[#D4A373] hover:bg-[#EDE5D8] dark:hover:bg-[#24201D] transition-colors cursor-pointer"
                           >
@@ -737,6 +722,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigateHome, 
             <h3 className="font-serif text-xl font-medium text-[#302720] dark:text-[#F5EFE6]">
               Add Category
             </h3>
+
+            {categoryError && (
+              <p className="text-xs text-rose-700 dark:text-rose-300">{categoryError}</p>
+            )}
 
             <form onSubmit={handleAddCategory} className="space-y-4">
               <div>

@@ -3,7 +3,6 @@ import { Project } from '../types';
 import { ArrowLeft, MapPin, Calendar, Compass, Maximize2, Play, Sparkles, MessageSquare, Loader2 } from 'lucide-react';
 import { MediaLightbox } from '../components/MediaLightbox';
 import { parseVideoInfo } from '../utils/mediaUtils';
-import { mergeProjects } from '../utils/storageSync';
 
 interface ProjectDetailPageProps {
   slug: string;
@@ -16,14 +15,8 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
   onNavigate,
   onOpenConsultation,
 }) => {
-  const [project, setProject] = useState<Project | null>(() => {
-    const cached = mergeProjects([]);
-    return cached.find((p) => p.slug === slug || p.id === slug) || null;
-  });
-  const [loading, setLoading] = useState<boolean>(() => {
-    const cached = mergeProjects([]);
-    return !cached.some((p) => p.slug === slug || p.id === slug);
-  });
+  const [project, setProject] = useState<Project | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Lightbox
@@ -31,6 +24,9 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
+    setLoading(true);
+    setProject(null);
+    setError(null);
     fetch(`/api/projects/${slug}`)
       .then((res) => {
         if (!res.ok) throw new Error('Project not found');
@@ -38,13 +34,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
       })
       .then((data) => setProject(data))
       .catch((err) => {
-        const cached = mergeProjects([]);
-        const found = cached.find((p) => p.slug === slug || p.id === slug);
-        if (found) {
-          setProject(found);
-        } else {
-          setError(err.message);
-        }
+        setError(err.message);
       })
       .finally(() => setLoading(false));
   }, [slug]);
