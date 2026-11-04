@@ -4,7 +4,7 @@ import multer from 'multer';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { client, ensureDbInitialized } from './src/db/index';
+import { client, ensureDbInitialized } from './src/db/index.js';
 
 export const app = express();
 
