@@ -1,4 +1,4 @@
-import app, { ensureDbInitialized } from '../server-app';
+import app, { ensureDbInitialized } from '../server-app.js';
 
 export default async function handler(req: any, res: any) {
   try {
